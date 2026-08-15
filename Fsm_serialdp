@@ -1,0 +1,46 @@
+module top_module(
+    input clk,
+    input in,
+    input reset,    // Synchronous reset
+    output [7:0] out_byte,
+    output done
+); //
+    typedef enum {IDLE, DATA, PARI, STOP, DONE, WAIT, EVEN}state_t;
+    state_t state, next_state;
+    logic[3:0] cnt;
+    logic isodd;
+    logic p_reset;
+    
+    // FSM
+	always_comb begin
+        next_state = state;
+        case(state)
+            IDLE: next_state = (in == 0)? DATA:IDLE;
+            DATA: next_state = (cnt== 8)? PARI:DATA;
+            PARI: next_state = STOP;
+            STOP: next_state = (in == 0)? WAIT: (isodd)? DONE:EVEN;
+            DONE: next_state = (in == 1)? IDLE: DATA;
+            WAIT: next_state = (in == 1)? WAIT: IDLE;
+            EVEN: next_state = (in == 1)? IDLE: DATA;
+            default: next_state = IDLE;
+        endcase
+    end
+    //ff state
+    always_ff@(posedge clk) begin
+        if(reset) state <= IDLE;
+        else state <= next_state;
+    end
+    //data&pari
+    always_ff@(posedge clk) begin
+        if(state == DATA) out_byte <= {in, out_byte[7:1]};
+        else out_byte <= out_byte;
+    end
+    always_ff@(posedge clk) begin
+        if(state == DATA) cnt <= cnt+1;
+        else cnt<= 0;
+    end
+    // New: Add parity checking.
+    parity my_parity_checker(clk, p_reset, in, isodd);
+    assign p_reset = (state != DATA)&&(state != PARI);
+    assign done = (state ==DONE);
+endmodule
