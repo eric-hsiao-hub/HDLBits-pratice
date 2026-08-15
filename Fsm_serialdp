@@ -16,11 +16,11 @@ module top_module(
         next_state = state;
         case(state)
             IDLE: next_state = (in == 0)? DATA:IDLE;
-            DATA: next_state = (cnt== 8)? PARI:DATA;
+            DATA: next_state = (cnt== 7)? PARI:DATA;
             PARI: next_state = STOP;
             STOP: next_state = (in == 0)? WAIT: (isodd)? DONE:EVEN;
             DONE: next_state = (in == 1)? IDLE: DATA;
-            WAIT: next_state = (in == 1)? WAIT: IDLE;
+            WAIT: next_state = (in == 1)? IDLE: WAIT;
             EVEN: next_state = (in == 1)? IDLE: DATA;
             default: next_state = IDLE;
         endcase
@@ -36,7 +36,7 @@ module top_module(
         else out_byte <= out_byte;
     end
     always_ff@(posedge clk) begin
-        if(state == DATA) cnt <= cnt+1;
+        if(state == DATA) cnt <= cnt+1'b1;
         else cnt<= 0;
     end
     // New: Add parity checking.
